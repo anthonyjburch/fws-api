@@ -155,6 +155,10 @@ namespace fws.api
                 return "cd";
             }
 
+            if (desc.Contains("dvd")) {
+                return "dvd";
+            }
+
             if (desc.Equals("digital")) {
                 return "digital";
             }
