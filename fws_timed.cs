@@ -27,12 +27,32 @@ namespace fws.api
             var products = new List<Product>();
             var items = new List<Item>();
 
-            while (results != 0)
+            while (results != 0) //new-releases collection
+            {
+                var request = new RestRequest($"collections/new-releases/products.json?page={page}", DataFormat.Json);
+                var response = client.Get(request);
+                var container = JsonConvert.DeserializeObject<Container>(response.Content);
+                products.AddRange(container.Products);
+
+                results = container.Products.Count();
+                page++;
+            }
+
+            results = 1;
+            page = 1; 
+
+            while (results != 0) //vinyl collection
             {
                 var request = new RestRequest($"collections/vinyl/products.json?page={page}", DataFormat.Json);
                 var response = client.Get(request);
                 var container = JsonConvert.DeserializeObject<Container>(response.Content);
-                products.AddRange(container.Products);
+                foreach (var product in container.Products)
+                {
+                    if (!products.Any(p => p.Id == product.Id))
+                    {
+                        products.Add(product);
+                    }
+                }
 
                 results = container.Products.Count();
                 page++;
