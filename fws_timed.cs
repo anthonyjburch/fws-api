@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using fws.api.models;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
 using Newtonsoft.Json;
@@ -27,32 +26,13 @@ namespace fws.api
             var products = new List<Product>();
             var items = new List<Item>();
 
-            while (results != 0) //new-releases collection
+            while (results != 0)
             {
-                var request = new RestRequest($"collections/new-releases/products.json?page={page}", DataFormat.Json);
+                var request = new RestRequest($"products.json?page={page}", DataFormat.Json);
                 var response = client.Get(request);
                 var container = JsonConvert.DeserializeObject<Container>(response.Content);
+
                 products.AddRange(container.Products);
-
-                results = container.Products.Count();
-                page++;
-            }
-
-            results = 1;
-            page = 1; 
-
-            while (results != 0) //vinyl collection
-            {
-                var request = new RestRequest($"collections/vinyl/products.json?page={page}", DataFormat.Json);
-                var response = client.Get(request);
-                var container = JsonConvert.DeserializeObject<Container>(response.Content);
-                foreach (var product in container.Products)
-                {
-                    if (!products.Any(p => p.Id == product.Id))
-                    {
-                        products.Add(product);
-                    }
-                }
 
                 results = container.Products.Count();
                 page++;
@@ -84,7 +64,8 @@ namespace fws.api
                         Artist = product.Vendor,
                         Title = product.Title,
                         Description = variant.Title,
-                        Format = GetFormat(variant.Title),
+                        ProductType = product.ProductType,
+                        Format = GetFormat(product.ProductType, variant.Title),
                         Available = variant.Available,
                         DateUpdated = (existingItem == null || (!existingItem.Available && variant.Available)) ? DateTime.UtcNow : existingItem.DateUpdated
                     });
@@ -97,9 +78,9 @@ namespace fws.api
             };
             var stockJson = JsonConvert.SerializeObject(items, jsonSerializerSettings);
 
-            
+
             stockBlob.Properties.ContentType = "application/json";
-            stockBlob.Properties.CacheControl = "1";
+            stockBlob.Properties.CacheControl = "max-age=1";
             using (Stream stream = new MemoryStream(Encoding.UTF8.GetBytes(stockJson)))
             {
                 await stockBlob.UploadFromStreamAsync(stream);
@@ -118,20 +99,21 @@ namespace fws.api
 
             var settingsBlob = blobContainer.GetBlockBlobReference("settings.json");
             settingsBlob.Properties.ContentType = "application/json";
-            settingsBlob.Properties.CacheControl = "1";
+            settingsBlob.Properties.CacheControl = "max-age=1";
             using (Stream stream = new MemoryStream(Encoding.UTF8.GetBytes(settingsJson)))
             {
                 await settingsBlob.UploadFromStreamAsync(stream);
             }
 
+
             log.LogInformation($"Wrote {items.Count()} items to storage.");
         }
 
-        private static string GetFormat(string desc)
+        private static string GetFormat(ProductType type, string desc)
         {
             desc = desc.ToLower();
 
-            if (desc.Contains("vinyl") 
+            if (desc.Contains("vinyl")
                 || desc.Contains("lp")
                 || desc.Contains("12\"")
                 || desc.Contains("12 inch")
@@ -139,7 +121,7 @@ namespace fws.api
                 || desc.Contains("10\"")
                 || desc.Contains("10 inch")
                 || desc.Contains("10inch")
-                || desc.Contains("7\"") 
+                || desc.Contains("7\"")
                 || desc.Contains("7 inch")
                 || desc.Contains("7inch")
                 )
@@ -147,20 +129,29 @@ namespace fws.api
                 return "vinyl";
             }
 
-            if (desc.Contains("cassette")) {
+            if (desc.Contains("cassette"))
+            {
                 return "cassette";
             }
 
-            if (desc.Contains("cd")) {
+            if (desc.Contains("cd"))
+            {
                 return "cd";
             }
 
-            if (desc.Contains("dvd")) {
+            if (desc.Contains("dvd"))
+            {
                 return "dvd";
             }
 
-            if (desc.Equals("digital")) {
+            if (desc.Equals("digital"))
+            {
                 return "digital";
+            }
+
+            if (type == ProductType.Merch)
+            {
+                return "merch";
             }
 
             return "unknown";
