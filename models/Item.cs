@@ -11,6 +11,7 @@ namespace fws.api.models
         public string Description { get; set; }
         public string Format { get; set; }
         public bool Available { get; set; }
+        public int Quantity { get; set; }
         public ProductType ProductType { get; set; }
         public DateTime DateUpdated { get; set; }
 
