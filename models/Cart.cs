@@ -14,6 +14,8 @@ namespace fws.api.models
     {
         public long id { get; set; }
         public int quantity { get; set; }
+        public string title { get; set; }
+        public string vendor { get; set; }
         public string key { get; set; }
     }
 }
