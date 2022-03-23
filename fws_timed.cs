@@ -56,7 +56,7 @@ namespace fws.api
                 foreach (var variant in product.Variants)
                 {
                     var existingItem = existingStock.FirstOrDefault(i => i.Id == variant.Id);
-                    items.Add(new Item
+                    var item = new Item
                     {
                         Id = variant.Id,
                         Handle = product.Handle,
@@ -67,7 +67,30 @@ namespace fws.api
                         Format = GetFormat(product.ProductType, variant.Title),
                         Available = variant.Available,
                         DateUpdated = (existingItem == null || (!existingItem.Available && variant.Available)) ? DateTime.UtcNow : existingItem.DateUpdated
-                    });
+                    };
+
+                    if (item.Available && item.Format == "vinyl")
+                    {
+                        try
+                        {
+                            var cart = await client.PostAsync<Cart>(new RestRequest("cart/clear.js"));
+                            cart.items.Add(new CartItem { id = item.Id, quantity = 1});
+                            cart = await client.PostAsync<Cart>(new RestRequest("cart/add.js").AddJsonBody(cart));
+                            cart = await client.PostAsync<Cart>(new RestRequest("cart/change.js").AddJsonBody(new {
+                                id = cart.items[0].key,
+                                quantity = 9999
+                            }));
+
+                            item.Quantity = cart.items[0].quantity;
+                        }
+
+                        catch (Exception ex)
+                        {
+                            log.LogError(ex, "Error getting quantity", item);
+                        }
+                    }
+                    
+                    items.Add(item);
                 }
             }
 
@@ -105,7 +128,7 @@ namespace fws.api
             }
 
 
-            log.LogInformation($"Wrote {items.Count()} items to storage.");
+            log.LogInformation($"Found {items.Count()} items.");
         }
 
         private static string GetFormat(ProductType type, string desc)
