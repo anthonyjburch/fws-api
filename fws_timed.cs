@@ -28,13 +28,12 @@ namespace fws.api
 
             while (results != 0)
             {
-                var request = new RestRequest($"products.json?page={page}", DataFormat.Json);
-                var response = client.Get(request);
-                var container = JsonConvert.DeserializeObject<Container>(response.Content);
+                var request = new RestRequest($"products.json?page={page}");
+                var response = await client.GetAsync<Container>(request);
 
-                products.AddRange(container.Products);
+                products.AddRange(response.Products);
 
-                results = container.Products.Count();
+                results = response.Products.Count();
                 page++;
             }
 
