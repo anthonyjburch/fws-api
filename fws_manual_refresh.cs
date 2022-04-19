@@ -13,7 +13,7 @@ namespace fws.api
     {
         [FunctionName("fws_manual_refresh")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("Triggering fws_timed");
@@ -40,7 +40,7 @@ namespace fws.api
 
             log.LogInformation("fws_timed triggered successfully");
 
-            return new OkResult();
+            return new OkObjectResult("Refresh request sent");
         }
     }
 }
