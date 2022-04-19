@@ -40,7 +40,7 @@ namespace fws.api
 
             log.LogInformation("fws_timed triggered successfully");
 
-            return new OkResult();
+            return new OkObjectResult("Refresh request sent");
         }
     }
 }
