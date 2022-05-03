@@ -64,7 +64,7 @@ namespace fws.api
                         Title = product.Title,
                         Description = variant.Title,
                         ProductType = product.ProductType,
-                        Format = GetFormat(product.ProductType, variant.Title),
+                        Format = GetFormat(product.ProductType, product.Title, variant.Title),
                         Available = variant.Available,
                         DateUpdated = (existingItem == null || (!existingItem.Available && variant.Available)) ? DateTime.UtcNow : existingItem.DateUpdated
                     };
@@ -131,53 +131,20 @@ namespace fws.api
             log.LogInformation($"Found {items.Count()} items.");
         }
 
-        private static string GetFormat(ProductType type, string desc)
+        private static string GetFormat(ProductType type, string productTitle, string variantTitle)
         {
-            desc = desc.ToLower();
+            variantTitle = variantTitle.ToLower();
+            productTitle = productTitle.ToLower();
 
-            if (desc.Contains("vinyl")
-                || desc.Contains("lp")
-                || desc.Contains("12\"")
-                || desc.Contains("12\\\"")
-                || desc.Contains("12 inch")
-                || desc.Contains("12inch")
-                || desc.Contains("10\"")
-                || desc.Contains("10\\\"")
-                || desc.Contains("10 inch")
-                || desc.Contains("10inch")
-                || desc.Contains("7\"")
-                || desc.Contains("7\\\"")
-                || desc.Contains("7 inch")
-                || desc.Contains("7inch")
-                )
-            {
-                return "vinyl";
-            }
+            var vinylDescriptors = new string[] { "vinyl", "lp", "12\"", "12 inch", "12inch", "10\"", "10 inch", "10inch", "7\"", "7 inch", "7inch"  };
 
-            if (desc.Contains("cassette"))
-            {
-                return "cassette";
-            }
-
-            if (desc.Contains("cd"))
-            {
-                return "cd";
-            }
-
-            if (desc.Contains("dvd"))
-            {
-                return "dvd";
-            }
-
-            if (desc.Equals("digital"))
-            {
-                return "digital";
-            }
-
-            if (type == ProductType.Merch)
-            {
-                return "merch";
-            }
+            if (vinylDescriptors.Any(d => variantTitle.Contains(d))) return "vinyl";
+            if (vinylDescriptors.Any(d => productTitle.Contains(d))) return "vinyl";
+            if (variantTitle.Contains("cassette")) return "cassette";
+            if (variantTitle.Contains("cd")) return "cd";
+            if (variantTitle.Contains("dvd")) return "dvd";
+            if (variantTitle.Contains("digital")) return "digital";
+            if (type == ProductType.Merch) return "merch";
 
             return "unknown";
         }
